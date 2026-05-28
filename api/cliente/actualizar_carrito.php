@@ -33,7 +33,7 @@ if (!$cantidad || !is_numeric($cantidad) || $cantidad < 0) {
 
 try {
     // Verificar que el producto existe y está activo
-    $stmt = $conn->prepare("SELECT id_producto, nombre, precio, stock FROM producto WHERE id_producto = ? AND estado = 1");
+    $stmt = $conn->prepare("SELECT id_producto, nombre, precio_base, stock_actual FROM producto WHERE id_producto = ? AND estado_activo = 1");
     $stmt->execute([$productoId]);
     $producto = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -42,8 +42,8 @@ try {
     }
 
     // Verificar stock disponible
-    if ($cantidad > $producto['stock']) {
-        Middleware::sendError('Cantidad excede el stock disponible (' . $producto['stock'] . ' unidades)', 400);
+    if ($cantidad > $producto['stock_actual']) {
+        Middleware::sendError('Cantidad excede el stock disponible (' . $producto['stock_actual'] . ' unidades)', 400);
     }
 
     // Inicializar carrito si no existe
@@ -65,7 +65,7 @@ try {
 
     if (!empty($_SESSION['carrito'])) {
         $placeholders = str_repeat('?,', count($_SESSION['carrito']) - 1) . '?';
-        $stmt = $conn->prepare("SELECT id_producto, precio FROM producto WHERE id_producto IN ($placeholders)");
+        $stmt = $conn->prepare("SELECT id_producto, precio_base FROM producto WHERE id_producto IN ($placeholders)");
         $stmt->execute(array_keys($_SESSION['carrito']));
         $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -74,7 +74,7 @@ try {
             if (isset($_SESSION['carrito'][$id])) {
                 $cant = $_SESSION['carrito'][$id];
                 $totalItems += $cant;
-                $totalPrecio += $prod['precio'] * $cant;
+                $totalPrecio += $prod['precio_base'] * $cant;
             }
         }
     }
@@ -85,8 +85,8 @@ try {
             'id' => $productoId,
             'nombre' => $producto['nombre'],
             'cantidad' => $cantidad,
-            'precio_unitario' => $producto['precio'],
-            'subtotal' => $producto['precio'] * $cantidad
+            'precio_unitario' => $producto['precio_base'],
+            'subtotal' => $producto['precio_base'] * $cantidad
         ],
         'carrito' => [
             'total_items' => $totalItems,

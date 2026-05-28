@@ -53,7 +53,7 @@ try {
 
     if (!empty($_SESSION['carrito'])) {
         $placeholders = str_repeat('?,', count($_SESSION['carrito']) - 1) . '?';
-        $stmt = $conn->prepare("SELECT id_producto, precio FROM producto WHERE id_producto IN ($placeholders)");
+        $stmt = $conn->prepare("SELECT id_producto, precio_base FROM producto WHERE id_producto IN ($placeholders)");
         $stmt->execute(array_keys($_SESSION['carrito']));
         $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -62,7 +62,7 @@ try {
             if (isset($_SESSION['carrito'][$id])) {
                 $cant = $_SESSION['carrito'][$id];
                 $totalItems += $cant;
-                $totalPrecio += $prod['precio'] * $cant;
+                $totalPrecio += $prod['precio_base'] * $cant;
             }
         }
     }

@@ -111,6 +111,12 @@ body{
         action="/petspa/api/admin/crear_usuario.php"
         method="POST">
 
+            <?php if (!empty($_GET['error'])): ?>
+                <div class="alert alert-danger" role="alert">
+                    <?= htmlspecialchars($_GET['error']) ?>
+                </div>
+            <?php endif; ?>
+
             <!-- NOMBRE -->
             <div class="row">
 
@@ -221,6 +227,20 @@ body{
 
             </div>
 
+            <!-- ESTADO -->
+            <div class="mb-3">
+
+                <label class="form-label fw-bold">
+                    Estado del Usuario
+                </label>
+
+                <select name="estado" class="form-select">
+                    <option value="1" selected>Activo</option>
+                    <option value="0">Inactivo</option>
+                </select>
+
+            </div>
+
             <!-- ROL -->
             <div class="mb-3">
 
@@ -257,6 +277,83 @@ body{
 
                 <p id="roleDescription" class="mb-0"></p>
 
+            </div>
+
+            <!-- CAMPOS SEGÚN ROL -->
+            <div id="roleFields" style="display:none;" class="border rounded p-4 bg-light mb-4">
+                <h5 class="mb-3">Configuración adicional por rol</h5>
+
+                <div class="role-section" data-role="groomer" style="display:none;">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Especialidad</label>
+                        <input type="text" name="especialidad" class="form-control" placeholder="Ej: Baño medicinal">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Capacidad simultánea</label>
+                        <input type="number" name="capacidad_simultanea" class="form-control" min="1" value="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Horario de trabajo</label>
+                        <input type="text" name="horario_trabajo" class="form-control" placeholder="Ej: Lun-Vie 09:00-18:00">
+                    </div>
+                </div>
+
+                <div class="role-section" data-role="recepcion" style="display:none;">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Turno</label>
+                        <input type="text" name="turno" class="form-control" placeholder="Ej: Mañana / Tarde">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Idiomas</label>
+                        <input type="text" name="idiomas" class="form-control" placeholder="Ej: Español, Inglés">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Años de experiencia</label>
+                        <input type="number" name="experiencia" class="form-control" min="0" value="0">
+                    </div>
+                </div>
+
+                <div class="role-section" data-role="admin" style="display:none;">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nivel de acceso</label>
+                        <input type="number" name="nivel_acceso" class="form-control" min="1" value="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Área de responsabilidad</label>
+                        <input type="text" name="area_responsabilidad" class="form-control" placeholder="Ej: Gestión administrativa">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="puede_contratar" id="puedeContratar">
+                        <label class="form-check-label" for="puedeContratar">Puede contratar personal</label>
+                    </div>
+                </div>
+
+                <div class="role-section" data-role="cliente" style="display:none;">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Dirección</label>
+                        <input type="text" name="direccion" class="form-control" placeholder="Calle y número">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">CI / NIT</label>
+                        <input type="text" name="ci" class="form-control" placeholder="Documento de identidad">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Canal de notificación</label>
+                        <select name="canal_notificacion_preferido" class="form-select">
+                            <option value="email">Email</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="sms">SMS</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Horario preferido</label>
+                        <input type="text" name="horario_preferido" class="form-control" placeholder="Ej: Mañanas de Lunes a Viernes">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="recibe_promociones" id="recibePromociones" checked>
+                        <label class="form-check-label" for="recibePromociones">Recibe promociones</label>
+                    </div>
+                </div>
             </div>
 
             <!-- BOTONES -->
@@ -297,49 +394,50 @@ const roleInfo = document.getElementById("roleInfo");
 const roleTitle = document.getElementById("roleTitle");
 const roleDescription = document.getElementById("roleDescription");
 
-document.getElementById("rolSelect")
-.addEventListener("change", function(){
+const roleFields = document.getElementById("roleFields");
+const roleSections = document.querySelectorAll('.role-section');
 
-    const value = this.options[this.selectedIndex].text.toLowerCase();
-
+function showRoleFields(role) {
     roleInfo.style.display = "block";
+    roleFields.style.display = "block";
 
-    if(value.includes("admin")){
+    roleSections.forEach(section => {
+        section.style.display = section.dataset.role === role ? 'block' : 'none';
+    });
 
+    if (role === 'admin') {
         roleTitle.innerHTML = "Administrador";
-
-        roleDescription.innerHTML =
-        "Acceso total al sistema, gestión de usuarios, auditoría y configuración.";
-
-    }
-
-    else if(value.includes("recepcion")){
-
+        roleDescription.innerHTML = "Acceso total al sistema, gestión de usuarios, auditoría y configuración.";
+    } else if (role === 'recepcion') {
         roleTitle.innerHTML = "Recepcionista";
-
-        roleDescription.innerHTML =
-        "Gestiona reservas, citas, clientes y atención en recepción.";
-
-    }
-
-    else if(value.includes("groomer")){
-
+        roleDescription.innerHTML = "Gestiona reservas, citas, clientes y atención en recepción.";
+    } else if (role === 'groomer') {
         roleTitle.innerHTML = "Groomer";
-
-        roleDescription.innerHTML =
-        "Especialista encargado del cuidado, higiene y estética de mascotas.";
-
-    }
-
-    else if(value.includes("cliente")){
-
+        roleDescription.innerHTML = "Especialista encargado del cuidado, higiene y estética de mascotas.";
+    } else if (role === 'cliente') {
         roleTitle.innerHTML = "Cliente";
-
-        roleDescription.innerHTML =
-        "Usuario final que puede reservar servicios y gestionar sus mascotas.";
-
+        roleDescription.innerHTML = "Usuario final que puede reservar servicios y gestionar sus mascotas.";
+    } else {
+        roleInfo.style.display = 'none';
+        roleFields.style.display = 'none';
     }
+}
 
+document.getElementById("rolSelect").addEventListener("change", function(){
+    const selectedOption = this.options[this.selectedIndex];
+    const value = selectedOption.text.toLowerCase();
+
+    if (value.includes("admin")) {
+        showRoleFields('admin');
+    } else if (value.includes("recepcion")) {
+        showRoleFields('recepcion');
+    } else if (value.includes("groomer")) {
+        showRoleFields('groomer');
+    } else if (value.includes("cliente")) {
+        showRoleFields('cliente');
+    } else {
+        showRoleFields('');
+    }
 });
 
 </script>

@@ -33,7 +33,7 @@ if (!is_numeric($cantidad) || $cantidad < 1) {
 
 try {
     // Verificar que el producto existe y está activo
-    $stmt = $conn->prepare("SELECT id_producto, nombre, precio, stock FROM producto WHERE id_producto = ? AND estado = 1");
+    $stmt = $conn->prepare("SELECT id_producto, nombre, precio_base, stock_actual FROM producto WHERE id_producto = ? AND estado_activo = 1");
     $stmt->execute([$productoId]);
     $producto = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -50,8 +50,8 @@ try {
     $cantidadActual = $_SESSION['carrito'][$productoId] ?? 0;
     $nuevaCantidad = $cantidadActual + $cantidad;
 
-    if ($nuevaCantidad > $producto['stock']) {
-        Middleware::sendError('No hay suficiente stock disponible. Stock actual: ' . $producto['stock'], 400);
+    if ($nuevaCantidad > $producto['stock_actual']) {
+        Middleware::sendError('No hay suficiente stock disponible. Stock actual: ' . $producto['stock_actual'], 400);
     }
 
     // Añadir al carrito
@@ -63,7 +63,7 @@ try {
 
     if (!empty($_SESSION['carrito'])) {
         $placeholders = str_repeat('?,', count($_SESSION['carrito']) - 1) . '?';
-        $stmt = $conn->prepare("SELECT id_producto, precio FROM producto WHERE id_producto IN ($placeholders)");
+        $stmt = $conn->prepare("SELECT id_producto, precio_base FROM producto WHERE id_producto IN ($placeholders)");
         $stmt->execute(array_keys($_SESSION['carrito']));
         $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -72,7 +72,7 @@ try {
             if (isset($_SESSION['carrito'][$id])) {
                 $cant = $_SESSION['carrito'][$id];
                 $totalItems += $cant;
-                $totalPrecio += $prod['precio'] * $cant;
+                $totalPrecio += $prod['precio_base'] * $cant;
             }
         }
     }
@@ -84,7 +84,7 @@ try {
             'nombre' => $producto['nombre'],
             'cantidad_anadida' => $cantidad,
             'cantidad_total' => $nuevaCantidad,
-            'precio_unitario' => $producto['precio']
+            'precio_unitario' => $producto['precio_base']
         ],
         'carrito' => [
             'total_items' => $totalItems,

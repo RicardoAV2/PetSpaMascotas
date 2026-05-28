@@ -131,6 +131,8 @@ CREATE TABLE mascota (
     especie VARCHAR(50) DEFAULT 'Perro',
     raza VARCHAR(50),
     peso DECIMAL(5,2),
+    tamano VARCHAR(50),
+    foto VARCHAR(255),
     fecha_nacimiento DATE,
     edad INT,
     alergias TEXT,
@@ -183,7 +185,7 @@ CREATE TABLE cita (
     fecha_inicio DATETIME NOT NULL,
     fecha_fin DATETIME NOT NULL,
     duracion_real INT NULL, -- minutos reales
-    estado ENUM('agendada', 'confirmada', 'en_progreso', 'completada', 'cancelada', 'no_asistio') DEFAULT 'agendada',
+    estado ENUM('pendiente', 'agendada', 'confirmada', 'en_progreso', 'completada', 'cancelada', 'no_asistio') DEFAULT 'pendiente',
     creado_por INT NOT NULL, -- usuario que creó la cita (admin, recepción o cliente)
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_reprogramacion TIMESTAMP NULL,
@@ -199,6 +201,35 @@ CREATE TABLE cita (
     FOREIGN KEY (usuario_reprogramo) REFERENCES usuario(id_usuario),
     -- CHECK (fecha_fin > fecha_inicio),
     UNIQUE KEY unique_cita_groomer_horario (id_groomer, fecha_inicio) -- Evita solapamientos
+);
+
+CREATE TABLE cita_servicio (
+    id_cita INT NOT NULL,
+    id_servicio INT NOT NULL,
+    cantidad INT NOT NULL DEFAULT 1,
+    PRIMARY KEY (id_cita, id_servicio),
+    FOREIGN KEY (id_cita) REFERENCES cita(id_cita) ON DELETE CASCADE,
+    FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio) ON DELETE CASCADE
+);
+
+-- =====================================================
+-- 8.5 RESERVA DE PRODUCTOS POR SERVICIO
+-- =====================================================
+CREATE TABLE servicio_producto_reserva (
+    id_reserva_servicio INT AUTO_INCREMENT PRIMARY KEY,
+    id_cita INT NOT NULL,
+    id_servicio INT NOT NULL,
+    id_producto INT NOT NULL,
+    cantidad_reservada INT NOT NULL DEFAULT 1,
+    tamano_mascota ENUM('pequeno', 'mediano', 'grande') DEFAULT 'mediano',
+    estado ENUM('reservado', 'usado', 'cancelado') DEFAULT 'reservado',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_cita) REFERENCES cita(id_cita) ON DELETE CASCADE,
+    FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio) ON DELETE CASCADE,
+    FOREIGN KEY (id_producto) REFERENCES producto(id_producto) ON DELETE RESTRICT,
+    KEY idx_cita_servicio (id_cita, id_servicio),
+    CHECK (cantidad_reservada > 0)
 );
 
 -- =====================================================
@@ -217,12 +248,46 @@ CREATE TABLE ficha_grooming (
     estado_mascota TEXT,
     consumido_inventario BOOLEAN DEFAULT FALSE, -- flag si ya se descontaron insumos
     fecha_cierre DATETIME NULL,
+    estado_cierre ENUM('completada', 'parcial', 'pausada') DEFAULT 'parcial', -- nuevo: permite guardado parcial
     id_cita INT UNIQUE NOT NULL,
     FOREIGN KEY (id_cita) REFERENCES cita(id_cita) ON DELETE CASCADE
 );
 
 -- =====================================================
--- 10. CHECKLIST (estandarizado por servicio)
+-- 10. REGISTRO DE SERVICIOS COMPLETADOS EN FICHA
+-- =====================================================
+CREATE TABLE ficha_servicio_registro (
+    id_registro INT AUTO_INCREMENT PRIMARY KEY,
+    id_ficha INT NOT NULL,
+    id_servicio INT NOT NULL,
+    completado BOOLEAN DEFAULT FALSE,
+    porcentaje_avance INT DEFAULT 0, -- 0-100 para servicios parcialmente completados
+    notas TEXT,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_ficha) REFERENCES ficha_grooming(id_ficha) ON DELETE CASCADE,
+    FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio) ON DELETE CASCADE,
+    UNIQUE KEY unique_ficha_servicio (id_ficha, id_servicio)
+);
+
+-- =====================================================
+-- 11. CONSUMO DE PRODUCTOS POR SERVICIO
+-- =====================================================
+CREATE TABLE ficha_servicio_productos_usados (
+    id_uso INT AUTO_INCREMENT PRIMARY KEY,
+    id_ficha INT NOT NULL,
+    id_servicio INT NOT NULL,
+    id_producto INT NOT NULL,
+    cantidad_usada INT NOT NULL,
+    cantidad_reservada INT NOT NULL,
+    fecha_uso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_ficha) REFERENCES ficha_grooming(id_ficha) ON DELETE CASCADE,
+    FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio) ON DELETE CASCADE,
+    FOREIGN KEY (id_producto) REFERENCES producto(id_producto) ON DELETE RESTRICT,
+    CHECK (cantidad_usada > 0 AND cantidad_usada <= cantidad_reservada)
+);
+
+-- =====================================================
+-- 12. CHECKLIST
 -- =====================================================
 
 CREATE TABLE checklist_item (
@@ -255,7 +320,7 @@ CREATE TABLE ficha_checklist (
 );
 
 -- =====================================================
--- 11. FOTOS (antes/después)
+-- 13. FOTOS (antes/después)
 -- =====================================================
 
 CREATE TABLE foto (
@@ -269,7 +334,7 @@ CREATE TABLE foto (
 );
 
 -- =====================================================
--- 12. PRODUCTOS, CATEGORÍAS y VARIANTES
+-- 14. PRODUCTOS, CATEGORÍAS y VARIANTES
 -- =====================================================
 
 CREATE TABLE categoria_producto (
@@ -309,7 +374,7 @@ CREATE TABLE variante_producto (
 );
 
 -- =====================================================
--- 13. CARRITO / PEDIDO (con soporte para WhatsApp/Telegram)
+-- 15. CARRITO / PEDIDO (con soporte para WhatsApp/Telegram)
 -- =====================================================
 
 CREATE TABLE carrito (
@@ -341,7 +406,7 @@ CREATE TABLE detalle_carrito (
 );
 
 -- =====================================================
--- 14. FACTURACIÓN (con pagos parciales)
+-- 16. FACTURACIÓN (con pagos parciales)
 -- =====================================================
 
 CREATE TABLE factura (
@@ -390,7 +455,7 @@ CREATE TABLE pago (
 );
 
 -- =====================================================
--- 15. CONSUMO DE INSUMOS (productos usados en grooming)
+-- 17. CONSUMO DE INSUMOS (productos usados en grooming)
 -- =====================================================
 
 CREATE TABLE uso_producto (
@@ -405,7 +470,7 @@ CREATE TABLE uso_producto (
 );
 
 -- =====================================================
--- 16. NOTIFICACIONES (con log de envíos y reintentos)
+-- 18. NOTIFICACIONES (con log de envíos y reintentos)
 -- =====================================================
 
 CREATE TABLE notificacion (
@@ -425,7 +490,45 @@ CREATE TABLE notificacion (
 );
 
 -- =====================================================
--- 17. CALIFICACIONES Y ENCUESTAS POST-SERVICIO
+-- 19. PROMOCIONES Y OFERTAS
+-- =====================================================
+
+CREATE TABLE promocion (
+    id_promocion INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    tipo ENUM('descuento_servicio','2x1_servicio','pack_servicio','descuento_producto','2x1_producto','precio_fijo') NOT NULL DEFAULT 'descuento_servicio',
+    valor DECIMAL(10,2) DEFAULT 0,
+    cantidad_requerida INT DEFAULT 1,
+    cantidad_regalo INT DEFAULT 0,
+    precio_oferta DECIMAL(10,2) DEFAULT NULL,
+    fecha_inicio DATETIME NOT NULL,
+    fecha_fin DATETIME NOT NULL,
+    activo BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE promocion_servicio (
+    id_promocion INT NOT NULL,
+    id_servicio INT NOT NULL,
+    cantidad INT DEFAULT 1,
+    precio_oferta DECIMAL(10,2) DEFAULT NULL,
+    PRIMARY KEY (id_promocion, id_servicio),
+    FOREIGN KEY (id_promocion) REFERENCES promocion(id_promocion) ON DELETE CASCADE,
+    FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio) ON DELETE CASCADE
+);
+
+CREATE TABLE promocion_producto (
+    id_promocion INT NOT NULL,
+    id_producto INT NOT NULL,
+    cantidad INT DEFAULT 1,
+    precio_oferta DECIMAL(10,2) DEFAULT NULL,
+    PRIMARY KEY (id_promocion, id_producto),
+    FOREIGN KEY (id_promocion) REFERENCES promocion(id_promocion) ON DELETE CASCADE,
+    FOREIGN KEY (id_producto) REFERENCES producto(id_producto) ON DELETE CASCADE
+);
+
+-- =====================================================
+-- 20. CALIFICACIONES Y ENCUESTAS POST-SERVICIO
 -- =====================================================
 
 CREATE TABLE calificacion (
@@ -443,7 +546,7 @@ CREATE TABLE calificacion (
 );
 
 -- =====================================================
--- 18. HISTORIAL DE MASCOTAS
+-- 21. HISTORIAL DE MASCOTAS
 -- =====================================================
 
 CREATE TABLE historial_mascota (
@@ -458,7 +561,7 @@ CREATE TABLE historial_mascota (
 );
 
 -- =====================================================
--- 19. SESIONES DE USUARIO (seguridad: JWT, refresh token)
+-- 22. SESIONES DE USUARIO (seguridad: JWT, refresh token)
 -- =====================================================
 
 CREATE TABLE usuario_sesion (
@@ -595,13 +698,15 @@ BEGIN
     WHERE id_ficha = NEW.id_ficha
     LIMIT 1;
 
-    SELECT id_inventario, cantidad_fisica
-    INTO inv_id, cantidad_antes
-    FROM inventario
-    WHERE id_producto = NEW.id_producto
-      AND estado_lote = 'activo'
-    ORDER BY cantidad_fisica DESC
-    LIMIT 1;
+        SELECT i.id_inventario, i.cantidad_fisica
+        INTO inv_id, cantidad_antes
+        FROM inventario i
+        WHERE i.id_producto = NEW.id_producto
+            AND i.estado_lote = 'activo'
+        ORDER BY (
+                SELECT COUNT(*) FROM reserva_inventario r WHERE r.id_inventario = i.id_inventario AND r.id_cita = ficha_cita AND r.estado_reserva = 'activa'
+        ) DESC, i.cantidad_fisica DESC
+        LIMIT 1;
 
     IF inv_id IS NOT NULL THEN
         UPDATE inventario
@@ -617,7 +722,7 @@ BEGIN
             inv_id, 'salida_consumo', NEW.cantidad,
             cantidad_antes, cantidad_antes - NEW.cantidad,
             0, 0,
-            'cita', ficha_cita, 1
+            'cita', ficha_cita, COALESCE(@current_user, 1)
         );
 
         IF (SELECT cantidad_fisica FROM inventario WHERE id_inventario = inv_id) <=

@@ -20,10 +20,11 @@ try {
     $stmt = $conn->prepare("
         SELECT g.*, u.nombre, u.telefono, u.email,
                COUNT(c.id_cita) as total_citas,
-               AVG(c.calificacion) as promedio_calificacion
+               AVG(col.puntuacion) as promedio_calificacion
         FROM groomer g
         JOIN usuario u ON g.id_groomer = u.id_usuario
         LEFT JOIN cita c ON g.id_groomer = c.id_groomer AND c.estado IN ('completada', 'confirmada')
+        join calificacion col on col.id_cita = c.id_cita
         WHERE g.estado_activo = 1
         GROUP BY g.id_groomer, u.nombre, u.telefono, u.email
         ORDER BY promedio_calificacion DESC, total_citas DESC
@@ -430,7 +431,7 @@ try {
                                         </div>
                                         <div class="stat-item">
                                             <span class="stat-number">
-                                                <?php echo $groomer['experiencia_anios'] ?? 0; ?> años
+                                                <?php echo $groomer['capacidad_simultanea'] ?? 0; ?> años
                                             </span>
                                             <span class="stat-label">Experiencia</span>
                                         </div>

@@ -29,8 +29,8 @@ try {
     // Obtener productos destacados
     $stmt = $conn->prepare("
         SELECT * FROM producto
-        WHERE estado = 1
-        ORDER BY fecha_creacion DESC
+        WHERE estado_activo = 1
+        ORDER BY descripcion DESC
         LIMIT 6
     ");
     $stmt->execute();
@@ -467,7 +467,7 @@ try {
                                 </div>
                                 <div class="product-info">
                                     <div class="product-name"><?php echo htmlspecialchars($producto['nombre']); ?></div>
-                                    <div class="product-price"><?php echo formatCurrency($producto['precio']); ?></div>
+                                    <div class="product-price"><?php echo formatCurrency($producto['precio_base']); ?></div>
                                 </div>
                             </a>
                         </div>
@@ -506,7 +506,7 @@ try {
                 <p>Teléfono: +591 123456788764 XDDD</p>
                 <p>Email: info@petspa.com</p>
             </div>
-            <div style="border-top: 1px solid #555; padding-top: 20px;">
+            <div style="border-top: 1px solid #4e4343; padding-top: 20px;">
                 <p>&copy; 2024 Pet Spa. Todos los derechos reservados UMSA Trabajo taller XD.</p>
             </div>
         </div>

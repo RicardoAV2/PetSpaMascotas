@@ -272,6 +272,15 @@ try {
                     <div class="action-card-desc">Conoce todos nuestros servicios</div>
                 </a>
             </div>
+                <div class="col-md-4">
+                    <a href="/petspa/public/cliente/reportes.php" class="action-card">
+                        <div class="action-card-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="action-card-title">Reportes</div>
+                        <div class="action-card-desc">Revisa tu historial y beneficios</div>
+                    </a>
+                </div>
         </div>
 
         <!-- MIS MASCOTAS -->

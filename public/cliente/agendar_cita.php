@@ -18,10 +18,15 @@ Middleware::checkSessionTimeout();
 $userId = $_SESSION['usuario_id'];
 $selectedGroomer = getGet('groomer', '');
 
-// Obtener mascotas del cliente
+// Obtener mascotas del cliente, incluyendo mascotas donde es dueño adicional
 try {
-    $stmt = $conn->prepare("SELECT * FROM mascota WHERE id_cliente_principal = ? ORDER BY nombre");
-    $stmt->execute([$userId]);
+    $stmt = $conn->prepare(
+        "SELECT DISTINCT m.* FROM mascota m
+         LEFT JOIN mascota_dueno md ON m.id_mascota = md.id_mascota
+         WHERE m.id_cliente_principal = :cliente OR md.id_cliente = :cliente
+         ORDER BY m.nombre"
+    );
+    $stmt->execute([':cliente' => $userId]);
     $mascotas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     $mascotas = [];
@@ -31,14 +36,14 @@ try {
 try {
     $stmt = $conn->prepare("
         SELECT g.id_groomer, u.nombre, g.especialidad,
-               COUNT(c.id_cita) as total_citas,
-               AVG(c.calificacion) as promedio_calificacion
+               COUNT(c.id_cita) as total_citas, g.calificacion_promedio
+               
         FROM groomer g
         JOIN usuario u ON g.id_groomer = u.id_usuario
         LEFT JOIN cita c ON g.id_groomer = c.id_groomer AND c.estado IN ('completada', 'confirmada')
         WHERE g.estado_activo = 1
         GROUP BY g.id_groomer, u.nombre, g.especialidad
-        ORDER BY promedio_calificacion DESC
+        ORDER BY calificacion_promedio DESC
     ");
     $stmt->execute();
     $groomers = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -47,15 +52,14 @@ try {
 }
 
 // Obtener servicios disponibles
-$servicios = [
-    'baño' => 'Baño Completo',
-    'corte_pelo' => 'Corte de Pelo',
-    'corte_unas' => 'Corte de Uñas',
-    'limpieza_oidos' => 'Limpieza de Oídos',
-    'deslanado' => 'Deslanado',
-    'baño_medicado' => 'Baño Medicado',
-    'grooming_completo' => 'Grooming Completo'
-];
+$servicios = [];
+try {
+    $stmt = $conn->prepare("SELECT id_servicio, nombre FROM servicio WHERE estado_activo = 1 ORDER BY nombre");
+    $stmt->execute();
+    $servicios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $servicios = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -474,7 +478,7 @@ $servicios = [
                                                         <div class="d-flex align-items-center">
                                                             <div class="stars me-2">
                                                                 <?php
-                                                                $rating = round($groomer['promedio_calificacion'] ?? 0, 1);
+                                                                $rating = round($groomer['calificacion_promedio'] ?? 0, 1);
                                                                 for ($i = 1; $i <= 5; $i++) {
                                                                     if ($i <= $rating) {
                                                                         echo '<i class="fas fa-star"></i>';
@@ -542,7 +546,7 @@ $servicios = [
                                                         </p>
                                                         <small class="text-muted">
                                                             <?php echo htmlspecialchars($mascota['especie']); ?> -
-                                                            <?php echo htmlspecialchars($mascota['color']); ?>
+                                                            <?php echo htmlspecialchars($mascota['comportamiento']); ?>
                                                         </small>
                                                     </div>
                                                     <div class="form-check">
@@ -592,12 +596,9 @@ $servicios = [
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="form-label">Servicios Requeridos</label>
-                                                <?php foreach ($servicios as $key => $servicio): ?>
-                                                    <input type="checkbox" class="service-checkbox" id="serv_<?php echo $key; ?>" name="servicios[]" value="<?php echo $key; ?>">
-                                                    <label class="service-label" for="serv_<?php echo $key; ?>">
-                                                        <?php echo htmlspecialchars($servicio); ?>
-                                                    </label>
-                                                <?php endforeach; ?>
+                                                <div id="serviciosContainer">
+                                                    <div class="text-muted p-2"><i class="fas fa-spinner fa-spin"></i> Cargando servicios...</div>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -611,7 +612,7 @@ $servicios = [
                                             <div class="form-group">
                                                 <label class="form-label">Horarios Disponibles</label>
                                                 <div id="timeSlots" class="time-slots">
-                                                    <div class="time-slot disabled">Selecciona una fecha</div>
+                                                    <div class="time-slot disabled">Selecciona fecha y servicios</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -682,8 +683,11 @@ $servicios = [
     <script>
         let currentStep = 1;
         let selectedGroomer = null;
+        let selectedGroomerName = '';
         let selectedPet = null;
+        let selectedPetName = '';
         let selectedServices = [];
+        let selectedServicesNames = '';
         let selectedDate = null;
         let selectedTime = null;
 
@@ -691,16 +695,78 @@ $servicios = [
         function selectGroomer(groomerId, card) {
             document.querySelectorAll('.groomer-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
-            document.querySelector(`input[name="groomer"][value="${groomerId}"]`).checked = true;
+            const radio = document.querySelector(`input[name="groomer"][value="${groomerId}"]`);
+            if (radio) {
+                radio.checked = true;
+            }
             selectedGroomer = groomerId;
+            selectedGroomerName = card.querySelector('h5') ? card.querySelector('h5').innerText.trim() : '';
+            
+            // Limpiar selecciones previas cuando cambia el groomer
+            selectedServices = [];
+            selectedServicesNames = '';
+            selectedTime = null;
+            document.getElementById('fecha').value = '';
+            document.getElementById('timeSlots').innerHTML = '<div class="time-slot disabled">Selecciona fecha y servicios</div>';
+            
+            // Cargar servicios para este groomer
+            loadServiciosGroomer(groomerId);
         }
 
-        // Seleccionar mascota
+        // Cargar servicios disponibles para un groomer
+        function loadServiciosGroomer(groomerId) {
+            if (!groomerId) return;
+            
+            const container = document.getElementById('serviciosContainer');
+            container.innerHTML = '<div class="text-muted p-2"><i class="fas fa-spinner fa-spin"></i> Cargando servicios...</div>';
+            
+            fetch(`/petspa/api/cliente/servicios_groomer.php?groomer_id=${encodeURIComponent(groomerId)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || !data.servicios || data.servicios.length === 0) {
+                        container.innerHTML = '<div class="text-danger p-2">No hay servicios disponibles para este groomer.</div>';
+                        return;
+                    }
+                    
+                    const html = data.servicios.map(s => `
+                        <div class="form-check mb-2">
+                            <input class="form-check-input servicio-checkbox" type="checkbox" id="serv_${s.id_servicio}" name="servicio_ids[]" value="${s.id_servicio}" onchange="loadAvailableTimes()">
+                            <label class="form-check-label" for="serv_${s.id_servicio}">
+                                ${escapeHtml(s.nombre)}
+                                <small class="text-muted">(${s.duracion_base_minutos} min)</small>
+                            </label>
+                        </div>
+                    `).join('');
+                    
+                    container.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error cargando servicios:', error);
+                    container.innerHTML = '<div class="text-danger p-2">Error cargando servicios.</div>';
+                });
+        }
+
+        // Escapar HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
         function selectPet(petId, card) {
             document.querySelectorAll('.pet-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
-            document.querySelector(`input[name="mascota"][value="${petId}"]`).checked = true;
+            const radio = document.querySelector(`input[name="mascota"][value="${petId}"]`);
+            if (radio) {
+                radio.checked = true;
+            }
             selectedPet = petId;
+            selectedPetName = card.querySelector('h5') ? card.querySelector('h5').innerText.trim() : '';
         }
 
         // Navegación entre pasos
@@ -755,11 +821,14 @@ $servicios = [
                     }
                     return true;
                 case 3:
-                    selectedServices = Array.from(document.querySelectorAll('input[name="servicios[]"]:checked')).map(cb => cb.value);
-                    if (selectedServices.length === 0) {
+                    const servicioCheckboxes = document.querySelectorAll('input[name="servicio_ids[]"]:checked');
+                    if (!servicioCheckboxes.length) {
                         showAlert('Por favor selecciona al menos un servicio', 'warning');
                         return false;
                     }
+                    selectedServices = Array.from(servicioCheckboxes).map(cb => cb.value);
+                    selectedServicesNames = Array.from(servicioCheckboxes).map(cb => cb.nextElementSibling ? cb.nextElementSibling.innerText.split('\n')[0].trim() : '').join(', ');
+                    
                     if (!document.getElementById('fecha').value) {
                         showAlert('Por favor selecciona una fecha', 'warning');
                         return false;
@@ -778,22 +847,45 @@ $servicios = [
         // Cargar horarios disponibles
         function loadAvailableTimes() {
             const fecha = document.getElementById('fecha').value;
-            if (!fecha) return;
-
-            selectedDate = fecha;
-            const timeSlots = document.getElementById('timeSlots');
-
-            // Horarios de ejemplo (9:00 AM - 5:00 PM)
-            const times = [];
-            for (let hour = 9; hour <= 17; hour++) {
-                times.push(`${hour.toString().padStart(2, '0')}:00`);
+            const servicioCheckboxes = document.querySelectorAll('input[name="servicio_ids[]"]:checked');
+            
+            if (!fecha || !selectedGroomer || !selectedPet || !servicioCheckboxes.length) {
+                const timeSlots = document.getElementById('timeSlots');
+                timeSlots.innerHTML = '<div class="time-slot disabled">Selecciona fecha y servicios</div>';
+                return;
             }
 
-            timeSlots.innerHTML = times.map(time => `
-                <div class="time-slot" onclick="selectTime('${time}', this)">
-                    ${time}
-                </div>
-            `).join('');
+            selectedServices = Array.from(servicioCheckboxes).map(cb => cb.value);
+            selectedServicesNames = Array.from(servicioCheckboxes).map(cb => cb.nextElementSibling ? cb.nextElementSibling.innerText.trim() : '').join(', ');
+            selectedDate = fecha;
+            selectedTime = null; // Limpiar selección de hora
+            
+            const timeSlots = document.getElementById('timeSlots');
+            timeSlots.innerHTML = '<div class="text-center p-3"><i class="fas fa-spinner fa-spin"></i> Cargando horarios...</div>';
+
+            const url = `/petspa/api/cliente/horarios_disponibles.php?groomer_id=${encodeURIComponent(selectedGroomer)}&mascota_id=${encodeURIComponent(selectedPet)}&servicio_ids=${encodeURIComponent(selectedServices.join(','))}&fecha=${encodeURIComponent(fecha)}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        timeSlots.innerHTML = `<div class="text-danger p-3"><i class="fas fa-exclamation-circle"></i> ${escapeHtml(data.message || 'Error cargando horarios.')}</div>`;
+                        return;
+                    }
+
+                    if (!data.slots || data.slots.length === 0) {
+                        timeSlots.innerHTML = `<div class="text-info p-3"><i class="fas fa-info-circle"></i> ${escapeHtml(data.message || 'No hay horarios disponibles para este día.')}</div>`;
+                        return;
+                    }
+
+                    timeSlots.innerHTML = data.slots.map(time => `
+                        <div class="time-slot" onclick="selectTime('${time}', this)">${time}</div>
+                    `).join('');
+                })
+                .catch(error => {
+                    console.error('Error cargando horarios:', error);
+                    timeSlots.innerHTML = '<div class="text-danger p-3"><i class="fas fa-exclamation-circle"></i> Error conectando con el servidor.</div>';
+                });
         }
 
         // Seleccionar horario
@@ -801,19 +893,19 @@ $servicios = [
             document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
             slot.classList.add('selected');
             selectedTime = time;
+            updateConfirmation();
         }
 
         // Actualizar confirmación
         function updateConfirmation() {
             const confirmation = document.getElementById('confirmationDetails');
 
-            // Aquí iría la lógica para mostrar el resumen
             confirmation.innerHTML = `
                 <div class="alert alert-success">
                     <h5><i class="fas fa-check-circle"></i> Resumen de tu Cita</h5>
-                    <p><strong>Groomer:</strong> Cargando...</p>
-                    <p><strong>Mascota:</strong> Cargando...</p>
-                    <p><strong>Servicios:</strong> ${selectedServices.join(', ')}</p>
+                    <p><strong>Groomer:</strong> ${selectedGroomerName || 'No seleccionado'}</p>
+                    <p><strong>Mascota:</strong> ${selectedPetName || 'No seleccionada'}</p>
+                    <p><strong>Servicios:</strong> ${selectedServicesNames || 'No seleccionados'}</p>
                     <p><strong>Fecha:</strong> ${selectedDate}</p>
                     <p><strong>Hora:</strong> ${selectedTime}</p>
                 </div>
@@ -825,10 +917,10 @@ $servicios = [
             const formData = {
                 groomer_id: selectedGroomer,
                 mascota_id: selectedPet,
-                servicios: selectedServices,
+                servicio_ids: selectedServices,
                 fecha: selectedDate,
                 hora: selectedTime,
-                notas: document.getElementById('notas').value
+                nota: document.getElementById('notas').value
             };
 
             fetch('/petspa/api/cliente/citas.php', {
@@ -838,7 +930,18 @@ $servicios = [
                 },
                 body: JSON.stringify(formData)
             })
-            .then(response => response.json())
+            //
+            .then(async response => {
+
+                const text = await response.text();
+
+                console.log("RESPUESTA:");
+                console.log(text);
+
+                return JSON.parse(text);
+
+            })
+            //.then(response => response.json())
             .then(data => {
                 if (data.success) {
                     showAlert('Cita agendada exitosamente', 'success');
@@ -890,6 +993,21 @@ $servicios = [
                     selectedGroomer = groomerParam;
                 }
             }
+
+            const urlInputs = [
+                ...document.querySelectorAll('input[name="groomer"]'),
+                ...document.querySelectorAll('input[name="mascota"]'),
+                ...document.querySelectorAll('input[name="servicio_ids[]"]'),
+                document.getElementById('fecha')
+            ];
+
+            urlInputs.forEach(input => {
+                if (input) {
+                    input.addEventListener('change', loadAvailableTimes);
+                }
+            });
+
+            loadAvailableTimes();
         });
     </script>
 </body>

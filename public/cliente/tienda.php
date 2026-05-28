@@ -17,7 +17,7 @@ Middleware::checkSessionTimeout();
 
 try {
     // Obtener categorías activas
-    $stmt = $conn->prepare("SELECT * FROM categoria WHERE estado = 1 ORDER BY nombre");
+    $stmt = $conn->prepare("SELECT * FROM categoria_producto ORDER BY nombre");
     $stmt->execute();
     $categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -27,8 +27,8 @@ try {
 
     $sql = "SELECT p.*, c.nombre as categoria_nombre
             FROM producto p
-            LEFT JOIN categoria c ON p.id_categoria = c.id_categoria
-            WHERE p.estado = 1";
+            LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
+            WHERE p.estado_activo = 1";
 
     $params = [];
 
@@ -43,7 +43,7 @@ try {
         $params[] = "%$busqueda%";
     }
 
-    $sql .= " ORDER BY p.fecha_creacion DESC";
+    $sql .= " ORDER BY p.stock_actual DESC";
 
     $stmt = $conn->prepare($sql);
     $stmt->execute($params);
@@ -378,7 +378,7 @@ try {
                                         <?php echo htmlspecialchars($producto['descripcion'] ?? ''); ?>
                                     </div>
                                     <div class="product-price mt-auto">
-                                        <?php echo formatCurrency($producto['precio']); ?>
+                                        <?php echo formatCurrency($producto['precio_base']); ?>
                                     </div>
                                     <button class="btn btn-add-cart mt-2" onclick="addToCart(<?php echo $producto['id_producto']; ?>)">
                                         <i class="fas fa-cart-plus"></i> Añadir al Carrito

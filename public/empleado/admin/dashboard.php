@@ -233,6 +233,12 @@ try {
             <li><a href="/petspa/public/empleado/admin/dashboard.php" class="active"><i class="fas fa-chart-line me-2"></i> Dashboard</a></li>
             <li><a href="/petspa/public/empleado/admin/empleados.php"><i class="fas fa-users me-2"></i> Usuarios</a></li>
             <li><a href="/petspa/public/empleado/admin/productos.php"><i class="fas fa-box me-2"></i> Productos</a></li>
+            <li><a href="/petspa/public/empleado/facturacion/generar_factura.php"><i class="fas fa-file-invoice-dollar me-2"></i> Facturación</a></li>
+            <li><a href="/petspa/public/empleado/promociones.php"><i class="fas fa-tags me-2"></i> Promociones</a></li>
+            <li><a href="/petspa/public/empleado/agenda.php"><i class="fas fa-calendar-alt me-2"></i> Agenda</a></li>
+            <li><a href="/petspa/public/empleado/recepcionista/calendario_maestro.php"><i class="fas fa-calendar-week me-2"></i> Calendario Maestro</a></li>
+            <li><a href="/petspa/public/empleado/admin/reportes.php"><i class="fas fa-file-alt me-2"></i> Reportes</a></li>
+            <li><a href="/petspa/public/empleado/recepcionista/cobrar.php"><i class="fas fa-credit-card me-2"></i> Cobrar servicios</a></li>
             <li><a href="/petspa/public/empleado/admin/auditoria.php"><i class="fas fa-file-chart-bar me-2"></i>@@ Auditoria</a></li>
             <li><a href="/petspa/public/perfil.php"><i class="fas fa-user-circle me-2"></i> Mi Perfil</a></li>
             <li><a href="/petspa/api/auth/logout.php"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
@@ -309,6 +315,9 @@ try {
                     
                     <a href="/petspa/public/empleado/admin/auditoria.php" class="btn btn-info btn-sm mb-2">
                         <i class="fas fa-download me-1"></i> Ver auditoria
+                    </a>
+                    <a href="/petspa/public/empleado/admin/reportes.php" class="btn btn-warning btn-sm me-2 mb-2">
+                        <i class="fas fa-file-alt me-1"></i> Ver reportes
                     </a>
                 </div>
             </div>

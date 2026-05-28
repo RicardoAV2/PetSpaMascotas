@@ -28,7 +28,7 @@ $subtotal = 0;
 // Obtener detalles de productos en el carrito
 if (!empty($carrito)) {
     $placeholders = str_repeat('?,', count($carrito) - 1) . '?';
-    $stmt = $conn->prepare("SELECT * FROM producto WHERE id_producto IN ($placeholders) AND estado = 1");
+    $stmt = $conn->prepare("SELECT * FROM producto WHERE id_producto IN ($placeholders) AND estado_activo = 1");
     $stmt->execute(array_keys($carrito));
     $productosBD = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -37,7 +37,7 @@ if (!empty($carrito)) {
         $id = $producto['id_producto'];
         if (isset($carrito[$id])) {
             $cantidad = $carrito[$id];
-            $precio = $producto['precio'];
+            $precio = $producto['precio_base'];
             $subtotalProducto = $precio * $cantidad;
 
             $productosCarrito[] = [
@@ -539,8 +539,43 @@ $total = $subtotal + $iva;
 
         // Proceder al checkout
         function proceedToCheckout() {
-            // TODO: Implementar checkout
-            showAlert('Funcionalidad de checkout próximamente', 'info');
+            const checkoutButton = document.querySelector('.btn-checkout');
+            checkoutButton.disabled = true;
+            fetch('/petspa/api/cliente/checkout.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                checkoutButton.disabled = false;
+                if (data.success) {
+                    showAlert(data.message || 'Pedido generado correctamente', 'success');
+                    if (data.data && data.data.whatsapp_url) {
+                        window.open(data.data.whatsapp_url, '_blank');
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1200);
+                        return;
+                    }
+                    if (data.data && data.data.email_url) {
+                        window.location.href = data.data.email_url;
+                        return;
+                    }
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1200);
+                } else {
+                    showAlert(data.error || 'Error al procesar el pedido', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                checkoutButton.disabled = false;
+                showAlert('Error de conexión al procesar el pedido', 'danger');
+            });
         }
 
         // Mostrar alertas

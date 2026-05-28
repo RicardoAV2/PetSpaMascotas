@@ -246,6 +246,7 @@ $citasRecientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <li><a href="/petspa/public/empleado/groomer/agenda.php" class="active"><i class="fas fa-calendar-check me-2"></i> Mi Agenda</a></li>
             <li><a href="/petspa/public/empleado/groomer/grooming.php"><i class="fas fa-cut me-2"></i> Grooming</a></li>
             <li><a href="/petspa/public/empleado/groomer/inventario.php"><i class="fas fa-boxes me-2"></i> Inventario</a></li>
+            <li><a href="/petspa/public/empleado/groomer/reportes.php"><i class="fas fa-file-alt me-2"></i> Reportes</a></li>
             <li><a href="/petspa/public/perfil.php"><i class="fas fa-user-circle me-2"></i> Mi Perfil</a></li>
             <li><a href="/petspa/api/auth/logout.php"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
         </ul>
@@ -318,6 +319,10 @@ $citasRecientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <a href="/petspa/public/empleado/groomer/grooming.php" class="btn btn-success btn-sm me-2 mb-2">
                         <i class="fas fa-cut me-1"></i> Iniciar Grooming
+                    </a>
+
+                    <a href="/petspa/public/empleado/groomer/reportes.php" class="btn btn-info btn-sm mb-2">
+                        <i class="fas fa-file-alt me-1"></i> Ver reportes
                     </a>
 
                     <a href="/petspa/public/empleado/groomer/inventario.php" class="btn btn-info btn-sm mb-2">

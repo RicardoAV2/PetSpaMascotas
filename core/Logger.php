@@ -12,6 +12,7 @@ require_once __DIR__ . '/Security.php';
 class Logger {
 
     private static $logFile = null;
+    private static $db = null;
 
     /**
      * Inicializar el logger
@@ -301,6 +302,14 @@ class Logger {
                 unlink($file);
             }
         }
+    }
+
+    /**
+     * Compatibilidad: aceptar conexión PDO si se proporciona (no obligatoria)
+     */
+    public static function setConnection($pdo) {
+        self::$db = $pdo;
+        return true;
     }
 
     /**

@@ -24,9 +24,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Solo clientes pueden acceder
-Middleware::requireAuth();
-Middleware::requireRole(ROLE_CLIENTE);
+// Autenticación/rol: devolver JSON en lugar de redirecciones para APIs
+if (!isset($_SESSION['usuario_id'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'No autenticado']);
+    exit;
+}
+
+if (empty($_SESSION['rol']) || $_SESSION['rol'] !== ROLE_CLIENTE) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Acceso denegado. Solo clientes pueden calificar.']);
+    exit;
+}
+
 Middleware::checkSessionTimeout();
 
 $userId = $_SESSION['usuario_id'];
@@ -68,12 +78,15 @@ try {
     // Verificar que la cita existe y pertenece al cliente
     try {
         $stmt = $conn->prepare("
-            SELECT c.id_cita, c.estado, c.calificacion, m.nombre as mascota_nombre
+            SELECT c.id_cita, c.estado, c.id_groomer, m.nombre as mascota_nombre
             FROM cita c
             JOIN mascota m ON c.id_mascota = m.id_mascota
-            WHERE c.id_cita = ? AND m.id_cliente_principal = ?
+            LEFT JOIN mascota_dueno md ON m.id_mascota = md.id_mascota AND md.id_cliente = :cliente
+            WHERE c.id_cita = :cita
+              AND (m.id_cliente_principal = :cliente OR md.id_cliente = :cliente)
+            LIMIT 1
         ");
-        $stmt->execute([$citaId, $userId]);
+        $stmt->execute([':cita' => $citaId, ':cliente' => $userId]);
         $cita = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$cita) {
@@ -90,7 +103,9 @@ try {
         }
 
         // Verificar que no haya sido calificada antes
-        if ($cita['calificacion']) {
+        $stmt = $conn->prepare("SELECT id_calificacion FROM calificacion WHERE id_cita = ?");
+        $stmt->execute([$citaId]);
+        if ($stmt->fetch()) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Esta cita ya ha sido calificada']);
             return;
@@ -106,14 +121,13 @@ try {
     // Sanitizar comentario
     $comentario = Security::sanitizeInput($comentario);
 
-    // Actualizar calificación
+    // Insertar calificación en tabla calificacion (no en cita)
     try {
         $stmt = $conn->prepare("
-            UPDATE cita
-            SET calificacion = ?, comentario = ?, fecha_actualizacion = NOW()
-            WHERE id_cita = ?
+            INSERT INTO calificacion (puntuacion, comentario, id_cliente, id_groomer, id_cita, fecha)
+            VALUES (?, ?, ?, ?, ?, NOW())
         ");
-        $stmt->execute([$calificacion, $comentario, $citaId]);
+        $stmt->execute([$calificacion, $comentario, $cita['id_cliente'], $cita['id_groomer'], $citaId]);
 
         // Log de la acción
         Logger::log('info', 'Cita Calificada', "Cita $citaId calificada con $calificacion estrellas por cliente $userId", $userId);

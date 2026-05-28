@@ -99,17 +99,20 @@ $ROLE_ROUTES = [
         'dashboard' => '/empleado/groomer/dashboard.php',
         'citas' => '/empleado/groomer/citas.php',
         'inventario' => '/empleado/groomer/inventario.php',
+        'reportes' => '/empleado/groomer/reportes.php',
     ],
     ROLE_RECEPCION => [
         'dashboard' => '/empleado/recepcionista/dashboard.php',
         'inventario' => '/empleado/recepcionista/inventario.php',
         'citas' => '/empleado/recepcionista/citas.php',
+        'reportes' => '/empleado/recepcionista/reportes.php',
     ],
     ROLE_CLIENTE => [
         'dashboard' => '/cliente/dashboard.php',
         'tienda' => '/cliente/tienda.php',
         'carrito' => '/cliente/carrito.php',
         'citas' => '/cliente/citas.php',
+        'reportes' => '/cliente/reportes.php',
     ]
 ];
 

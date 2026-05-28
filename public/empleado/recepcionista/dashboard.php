@@ -236,8 +236,14 @@ LIMIT 10
         </div>
 
         <ul class="sidebar-menu">
-            <li><a href="/petspa/public/empleado/recepcionista/citas.php" class="active"><i class="fas fa-calendar-check me-2"></i> Citas</a></li>
+            <li><a href="/petspa/public/empleado/agenda.php"><i class="fas fa-calendar-alt me-2"></i> Agenda</a></li>
+            <li><a href="/petspa/public/empleado/recepcionista/calendario_maestro.php"><i class="fas fa-calendar-week me-2"></i> Calendario Maestro</a></li>
+            <li><a href="/petspa/public/empleado/recepcionista/citas.php"><i class="fas fa-calendar-check me-2"></i> Citas</a></li>
             <li><a href="/petspa/public/empleado/recepcionista/inventario.php"><i class="fas fa-boxes me-2"></i> Inventario</a></li>
+            <li><a href="/petspa/public/empleado/recepcionista/cobrar.php"><i class="fas fa-credit-card me-2"></i> Cobrar servicios</a></li>
+            <li><a href="/petspa/public/empleado/facturacion/generar_factura.php"><i class="fas fa-file-invoice-dollar me-2"></i> Facturación</a></li>
+            <li><a href="/petspa/public/empleado/promociones.php"><i class="fas fa-tags me-2"></i> Promociones</a></li>
+            <li><a href="/petspa/public/empleado/recepcionista/reportes.php"><i class="fas fa-file-alt me-2"></i> Reportes</a></li>
             <li><a href="/petspa/public/perfil.php"><i class="fas fa-user-circle me-2"></i> Mi Perfil</a></li>
             <li><a href="/petspa/api/auth/logout.php"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
         </ul>
@@ -293,12 +299,32 @@ LIMIT 10
                 <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);">
                     <h5 class="mb-4"><i class="fas fa-tasks me-2"></i> Acciones Rápidas</h5>
 
-                    <a href="/petspa/public/empleado/recepcionista/citas.php" class="btn btn-primary btn-sm me-2 mb-2">
-                        <i class="fas fa-plus me-1"></i> Nueva Cita
+                    <a href="/petspa/public/empleado/agenda.php" class="btn btn-primary btn-sm me-2 mb-2">
+                        <i class="fas fa-calendar-alt me-1"></i> Agenda / Nueva Cita
+                    </a>
+
+                    <a href="/petspa/public/empleado/recepcionista/calendario_maestro.php" class="btn btn-secondary btn-sm me-2 mb-2">
+                        <i class="fas fa-calendar-week me-1"></i> Calendario Maestro
                     </a>
 
                     <a href="/petspa/public/empleado/recepcionista/inventario.php" class="btn btn-success btn-sm me-2 mb-2">
                         <i class="fas fa-boxes me-1"></i> Ver Inventario
+                    </a>
+
+                    <a href="/petspa/public/empleado/recepcionista/cobrar.php" class="btn btn-warning btn-sm me-2 mb-2">
+                        <i class="fas fa-credit-card me-1"></i> Cobrar Servicio
+                    </a>
+
+                    <a href="/petspa/public/empleado/facturacion/generar_factura.php" class="btn btn-secondary btn-sm me-2 mb-2">
+                        <i class="fas fa-file-invoice-dollar me-1"></i> Facturación
+                    </a>
+
+                    <a href="/petspa/public/empleado/promociones.php" class="btn btn-success btn-sm me-2 mb-2">
+                        <i class="fas fa-tags me-1"></i> Promociones
+                    </a>
+
+                    <a href="/petspa/public/empleado/recepcionista/reportes.php" class="btn btn-info btn-sm me-2 mb-2">
+                        <i class="fas fa-file-alt me-1"></i> Ver reportes
                     </a>
 
                     <a href="/petspa/public/cliente/servicios.php" class="btn btn-info btn-sm mb-2">

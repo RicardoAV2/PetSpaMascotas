@@ -88,6 +88,40 @@ INSERT INTO disponibilidad (id_groomer, dia_semana, hora_inicio, hora_fin, inter
 (7, 5, '10:00:00', '19:00:00', '{"inicio":"14:00","fin":"15:00"}'),
 (7, 6, '09:00:00', '14:00:00', NULL);
 
+
+INSERT INTO disponibilidad
+(id_groomer,dia_semana,hora_inicio,hora_fin,intervalo_descanso)
+
+VALUES
+
+-- Groomer 5
+(5,1,'09:00:00','18:00:00','{"inicio":"13:00","fin":"14:00"}'),
+(5,2,'09:00:00','18:00:00','{"inicio":"13:00","fin":"14:00"}'),
+(5,3,'09:00:00','18:00:00','{"inicio":"13:00","fin":"14:00"}'),
+(5,4,'09:00:00','18:00:00','{"inicio":"13:00","fin":"14:00"}'),
+(5,5,'09:00:00','18:00:00','{"inicio":"13:00","fin":"14:00"}'),
+
+-- Groomer 6
+(6,1,'08:00:00','17:00:00','{"inicio":"12:00","fin":"13:00"}'),
+(6,2,'08:00:00','17:00:00','{"inicio":"12:00","fin":"13:00"}'),
+(6,3,'08:00:00','17:00:00','{"inicio":"12:00","fin":"13:00"}'),
+(6,4,'08:00:00','17:00:00','{"inicio":"12:00","fin":"13:00"}'),
+(6,5,'08:00:00','17:00:00','{"inicio":"12:00","fin":"13:00"}'),
+
+-- Groomer 7
+(7,1,'10:00:00','19:00:00','{"inicio":"14:00","fin":"15:00"}'),
+(7,2,'10:00:00','19:00:00','{"inicio":"14:00","fin":"15:00"}'),
+(7,3,'10:00:00','19:00:00','{"inicio":"14:00","fin":"15:00"}'),
+(7,4,'10:00:00','19:00:00','{"inicio":"14:00","fin":"15:00"}'),
+(7,5,'10:00:00','19:00:00','{"inicio":"14:00","fin":"15:00"}'),
+(7,6,'09:00:00','14:00:00','{"inicio":"11:30","fin":"12:00"}'),
+
+-- Groomer 8
+(8,2,'07:00:00','16:00:00','{"inicio":"11:00","fin":"12:00"}'),
+(8,3,'07:00:00','16:00:00','{"inicio":"11:00","fin":"12:00"}'),
+(8,4,'07:00:00','16:00:00','{"inicio":"11:00","fin":"12:00"}'),
+(8,5,'07:00:00','16:00:00','{"inicio":"11:00","fin":"12:00"}'),
+(8,6,'08:00:00','13:00:00','{"inicio":"10:30","fin":"11:00"}');
 -- =====================================================
 -- 7. BLOQUEOS DE AGENDA (8 registros)
 -- =====================================================
@@ -592,7 +626,35 @@ INSERT INTO notificacion (tipo_evento, canal, mensaje, destino, fecha_programaci
 ('listo_recoger', 'whatsapp', 'Mascota lista para recoger', '70010009', '2024-01-17 16:00:00', '2024-01-17 16:05:00', 'enviado', 0, 9, 18);
 
 -- =====================================================
--- 30. CALIFICACIONES (15 registros)
+-- 30. PROMOCIONES / OFERTAS DE PRODUCTOS Y SERVICIOS
+-- =====================================================
+INSERT INTO promocion (nombre, descripcion, tipo, valor, cantidad_requerida, cantidad_regalo, precio_oferta, fecha_inicio, fecha_fin, activo) VALUES
+('2x1 Corte + Baño', 'Promoción especial: toma 2 servicios de grooming y paga solo 1.', '2x1_servicio', 0, 2, 1, NULL, '2024-01-20 00:00:00', '2024-02-10 23:59:59', 1),
+('Pack Spa + Corte', '2 servicios de grooming por precio especial de $120.', 'pack_servicio', 0, 2, 0, 120.00, '2024-01-15 00:00:00', '2024-02-15 23:59:59', 1),
+('Descuento Shampoo', '10% de descuento en shampoo antipulgas.', 'descuento_producto', 10.00, 1, 0, NULL, '2024-01-18 00:00:00', '2024-02-28 23:59:59', 1);
+
+INSERT INTO promocion_servicio (id_promocion, id_servicio, cantidad, precio_oferta) VALUES
+(1, 1, 2, NULL),
+(2, 1, 1, 120.00),
+(2, 2, 1, 120.00);
+
+INSERT INTO promocion_producto (id_promocion, id_producto, cantidad, precio_oferta) VALUES
+(3, 4, 1, NULL);
+
+INSERT INTO promocion (nombre, descripcion, tipo, valor, cantidad_requerida, cantidad_regalo, precio_oferta, fecha_inicio, fecha_fin, activo) VALUES
+('Combo Spa + Corte', 'Paquete de dos servicios premium por precio especial.', 'pack_servicio', 0, 2, 0, 120.00, '2024-02-01 00:00:00', '2024-02-28 23:59:59', 1),
+('2x1 Limpieza de Oídos', 'Llévate 2 servicios de limpieza de oídos y paga uno solo.', '2x1_servicio', 0, 2, 1, NULL, '2024-02-05 00:00:00', '2024-02-20 23:59:59', 1),
+('Pack Shampoo 2x1', 'Compra 2 shampoos por precio especial de $45.', 'precio_fijo', 0, 2, 0, 45.00, '2024-02-05 00:00:00', '2024-03-05 23:59:59', 1);
+
+INSERT INTO promocion_servicio (id_promocion, id_servicio, cantidad, precio_oferta) VALUES
+(4, 8, 1, 120.00),
+(5, 5, 2, NULL);
+
+INSERT INTO promocion_producto (id_promocion, id_producto, cantidad, precio_oferta) VALUES
+(6, 4, 2, 45.00);
+
+-- =====================================================
+-- 31. CALIFICACIONES (15 registros)
 -- =====================================================
 INSERT INTO calificacion (puntuacion, comentario, fecha, id_cliente, id_groomer, id_cita) VALUES
 (5, 'Excelente servicio, mi perro quedó muy bonito', '2024-01-10 18:00:00', 9, 5, 1),

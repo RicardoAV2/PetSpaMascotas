@@ -67,6 +67,8 @@ $clientes = $conn->query($sql2)->fetchAll(PDO::FETCH_ASSOC);
 + Nuevo Usuario
 
 </a>
+<a href="/petspa/public/empleado/admin/dashboard.php" class="btn btn-secondary">Volver al Dashboard</a>
+
 <thead class="table-dark">
 
 <tr>
@@ -206,6 +208,33 @@ Eliminar
 
 </tbody>
 
+</table>
+
+<h3 class="mt-5">Clientes registrados</h3>
+<table class="table table-hover align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($clientes as $cliente): ?>
+            <tr>
+                <td><?= $cliente['id_usuario'] ?></td>
+                <td><?= htmlspecialchars($cliente['nombre'] . ' ' . $cliente['apellido']) ?></td>
+                <td><?= htmlspecialchars($cliente['email']) ?></td>
+                <td><span class="badge bg-success"><?= strtoupper($cliente['rol']) ?></span></td>
+                <td>
+                    <a href="editar.php?id=<?= $cliente['id_usuario'] ?>" class="btn btn-sm btn-warning">Editar</a>
+                    <a href="/petspa/api/admin/eliminar_usuario.php?id=<?= $cliente['id_usuario'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar cliente?')">Eliminar</a>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+    </tbody>
 </table>
 </div>
 <div class="col-md-4">

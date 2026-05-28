@@ -9,6 +9,8 @@ require_once __DIR__ . '/../config/constants.php';
 
 class Security {
 
+    private static $conn = null;
+
     /**
      * ===== HASHING DE CONTRASEÑAS =====
      */
@@ -100,6 +102,14 @@ class Security {
         $password .= array_rand(array_flip(['!', '@', '#', '$', '%', '^', '&', '*'])); // Agregar símbolo
         
         return $password;
+    }
+
+    /**
+     * Compatibilidad: asignar conexión a BD si es necesario
+     */
+    public static function setConnection($pdo) {
+        self::$conn = $pdo;
+        return true;
     }
 
     /**
